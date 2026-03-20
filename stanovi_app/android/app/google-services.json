@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "553491692617",
+    "project_id": "izdavanjestanova-c6772",
+    "storage_bucket": "izdavanjestanova-c6772.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:553491692617:android:39eb1e37b612bb58319398",
+        "android_client_info": {
+          "package_name": "com.example.stanovi_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmPPC64sfuqn1iaebvZDhS31SEjc1ZxpA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
