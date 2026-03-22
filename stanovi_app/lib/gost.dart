@@ -5,7 +5,10 @@ import 'prijava.dart'; // Proveri da li se fajl zove ovako
 
 class GostPage extends StatelessWidget {
   const GostPage({super.key});
-
+  
+static final TextEditingController naslovController = TextEditingController();
+  static final TextEditingController cenaController = TextEditingController();
+  static final TextEditingController slikaController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     // KLJUČNO: Slušamo promene u Firebase Auth-u
@@ -73,11 +76,7 @@ class GostPage extends StatelessWidget {
                           trailing: jeUlogovan 
                             ? IconButton(
                                 icon: const Icon(Icons.comment_outlined, color: Colors.blueGrey),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Funkcija komentarisanja uskoro!")),
-                                  );
-                                },
+                                onPressed: () => _prikaziKomentare(context, snapshot.data!.docs[index].id),
                               ) 
                             : null,
                         ),
@@ -103,27 +102,82 @@ class GostPage extends StatelessWidget {
   }
 
   // Mala forma koja iskače odozdo
-  void _prikaziFormuZaDodavanje(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 20, left: 20, right: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Dodaj novi stan", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const TextField(decoration: InputDecoration(labelText: "Naslov")),
-            const TextField(decoration: InputDecoration(labelText: "Cena")),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Objavi"),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+ void _prikaziFormuZaDodavanje(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom, 
+          top: 20, left: 20, right: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text("Dodaj novi oglas", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          TextField(controller: naslovController, decoration: const InputDecoration(labelText: "Naslov")),
+          TextField(controller: cenaController, decoration: const InputDecoration(labelText: "Cena (npr. 400€)")),
+          TextField(controller: slikaController, decoration: const InputDecoration(labelText: "URL slike")),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () async {
+              // FUNKCIJA KOJA ŠALJE U FIREBASE
+              await FirebaseFirestore.instance.collection('stanovi').add({
+                'naslov': naslovController.text,
+                'cena': cenaController.text,
+                'imageUrl': slikaController.text,
+                'vremeObjave': FieldValue.serverTimestamp(),
+                'vlasnikId': FirebaseAuth.instance.currentUser?.uid,
+              });
+              
+              // Očisti polja i zatvori prozor
+              naslovController.clear();
+              cenaController.clear();
+              slikaController.clear();
+              Navigator.pop(context);
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Oglas uspešno dodat!")),
+              );
+            },
+            child: const Text("Objavi"),
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }
+void _prikaziKomentare(BuildContext context, String stanId) {
+  final TextEditingController komentarController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Ostavi komentar"),
+      content: TextField(
+        controller: komentarController,
+        decoration: const InputDecoration(hintText: "Napiši nešto..."),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Odustani")),
+        ElevatedButton(
+          onPressed: () async {
+            if (komentarController.text.isNotEmpty) {
+              await FirebaseFirestore.instance
+                  .collection('stanovi')
+                  .doc(stanId)
+                  .collection('komentari')
+                  .add({
+                'tekst': komentarController.text,
+                'korisnik': FirebaseAuth.instance.currentUser?.email,
+                'vreme': FieldValue.serverTimestamp(),
+              });
+              Navigator.pop(context);
+            }
+          },
+          child: const Text("Pošalji"),
+        ),
+      ],
+    ),
+  );
+}}
