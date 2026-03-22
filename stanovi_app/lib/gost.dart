@@ -16,6 +16,19 @@ class GostPage extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: const Icon(Icons.account_circle, color: Colors.blueAccent, size: 30),
+              onPressed: () {
+                // Ovde ćemo kasnije staviti navigaciju:
+                // Navigator.push(context, MaterialPageRoute(builder: (context) => const AuthPage()));
+                print("Kliknuto na Login");
+              },
+            ),
+          ),
+        ],
       ),
       body: StreamBuilder(
         // Slušamo kolekciju 'stanovi' (ili 'apartments' zavisno kako si nazvala u Firebase-u)
