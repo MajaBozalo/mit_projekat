@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Dodato za proveru prijave
 import 'firebase_options.dart';
 import 'gost.dart';
+import 'admin_page.dart'; // Proveri da li si napravila ovaj fajl
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +25,25 @@ class StanoviApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const GostPage(),
+      // Umesto direktnog odlaska na GostPage, idemo na AuthWrapper
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+// OVO JE "MOZAK" KOJI ODREĐUJE ŠTA KORISNIK VIDI
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // I ulogovan i neulogovan korisnik sada idu na istu stranicu
+        // jer GostPage sama crta dugmiće na osnovu statusa
+        return const GostPage(); 
+      },
     );
   }
 }

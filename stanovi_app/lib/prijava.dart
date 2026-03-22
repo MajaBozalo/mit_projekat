@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'registracija.dart';
 
 class PrijavaPage extends StatefulWidget {
   const PrijavaPage({super.key});
@@ -91,7 +92,10 @@ class _PrijavaPageState extends State<PrijavaPage> {
             // LINK ZA REGISTRACIJU
             TextButton(
               onPressed: () {
-                // Ovde ćemo kasnije dodati prelaz na registracija.dart
+               Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const RegistracijaPage()),
+                );
               },
               child: const Text("Nemaš nalog? Registruj se ovde"),
             ),
