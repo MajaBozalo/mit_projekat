@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'prijava.dart';
 
 class GostPage extends StatelessWidget {
   const GostPage({super.key});
@@ -22,9 +23,10 @@ class GostPage extends StatelessWidget {
             child: IconButton(
               icon: const Icon(Icons.account_circle, color: Colors.blueAccent, size: 30),
               onPressed: () {
-                // Ovde ćemo kasnije staviti navigaciju:
-                // Navigator.push(context, MaterialPageRoute(builder: (context) => const AuthPage()));
-                print("Kliknuto na Login");
+               Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PrijavaPage()),
+            );
               },
             ),
           ),
