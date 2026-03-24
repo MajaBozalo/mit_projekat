@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'prijava.dart';
+import 'detalji_stan.dart';
 
 class GostPage extends StatelessWidget {
   const GostPage({super.key});
 
-  // Kontroleri za unos podataka
   static final TextEditingController naslovController = TextEditingController();
   static final TextEditingController cenaController = TextEditingController();
   static final TextEditingController slikaController = TextEditingController();
@@ -23,51 +23,44 @@ class GostPage extends StatelessWidget {
         final bool jeUlogovan = authSnapshot.hasData;
 
         return Scaffold(
-            drawer: Drawer(
-  child: ListView(
-    padding: EdgeInsets.zero,
-    children: [
-
-      DrawerHeader(
-        decoration: BoxDecoration(
-          color: Color(0xFF2F5D8C),
-        ),
-        child: Text(
-          "Moj meni",
-          style: TextStyle(color: Colors.white, fontSize: 20),
-        ),
-      ),
-
-      ListTile(
-        leading: Icon(Icons.favorite),
-        title: Text("Favoriti"),
-        onTap: () {
-          // otvara stranicu sa favoritima
-        },
-      ),
-
-      ListTile(
-        leading: Icon(Icons.home),
-        title: Text("Moji oglasi"),
-        onTap: () {},
-      ),
-
-      ListTile(
-        leading: Icon(Icons.person),
-        title: Text("Profil"),
-        onTap: () {},
-      ),
-
-      ListTile(
-        leading: Icon(Icons.logout, color: Colors.red),
-        title: Text("Odjava"),
-        onTap: () {
-          FirebaseAuth.instance.signOut();
-        },
-      ),
-    ],
-  ),
-),
+          drawer: Drawer(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                const DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: Color(0xFF2F5D8C),
+                  ),
+                  child: Text(
+                    "Moj meni",
+                    style: TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.favorite),
+                  title: const Text("Favoriti"),
+                  onTap: () {},
+                ),
+                ListTile(
+                  leading: const Icon(Icons.home),
+                  title: const Text("Moji oglasi"),
+                  onTap: () {},
+                ),
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: const Text("Profil"),
+                  onTap: () {},
+                ),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text("Odjava"),
+                  onTap: () {
+                    FirebaseAuth.instance.signOut();
+                  },
+                ),
+              ],
+            ),
+          ),
           backgroundColor: const Color(0xFFF5F5F7),
           appBar: AppBar(
             title: const Text("Stanovi", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -87,9 +80,7 @@ class GostPage extends StatelessWidget {
                         );
                       },
                     ),
-                    
             ],
-            
           ),
           body: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('stanovi').snapshots(),
@@ -102,62 +93,80 @@ class GostPage extends StatelessWidget {
                 return const Center(child: Text("Trenutno nema stanova."));
               }
 
-              return ListView.builder(
+              return GridView.builder(
                 padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.65,
+                ),
                 itemCount: snapshot.data!.docs.length,
                 itemBuilder: (context, index) {
                   var doc = snapshot.data!.docs[index];
                   var stan = doc.data() as Map<String, dynamic>;
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    elevation: 4,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Slika stana
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                          child: Image.network(
-                            stan['imageUrl'] ?? '',
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              height: 180,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 50),
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetaljiStanPage(stan: stan),
+                        ),
+                      );
+                    },
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                            child: Image.network(
+                              stan['imageUrl'] ?? '',
+                              height: 120,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 120,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.image, size: 40),
+                              ),
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(stan['naslov'] ?? 'Bez naslova',
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 5),
-                              Text("Cena: ${stan['cena'] ?? 'Dogovor'}",
-                                  style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                              Text("Lokacija: ${stan['lokacija'] ?? 'Nepoznato'}"),
-                              Text("Kvadratura: ${stan['kvadratura'] ?? '0'} m² | Sobe: ${stan['sobe'] ?? '0'}"),
-                              const Divider(),
-                              Text(stan['opis'] ?? 'Nema opisa', style: TextStyle(color: Colors.grey[700])),
-                            ],
-                          ),
-                        ),
-                        // Dugme za komentare (samo za ulogovane)
-                        if (jeUlogovan)
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: IconButton(
-                              icon: const Icon(Icons.comment_outlined),
-                              onPressed: () => _prikaziKomentare(context, doc.id),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  stan['naslov'] ?? 'Bez naslova',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Cena: ${stan['cena'] ?? ''}",
+                                  style: const TextStyle(
+                                      color: Colors.blueAccent,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text("Lokacija: ${stan['lokacija'] ?? ''}"),
+                              ],
                             ),
                           ),
-                      ],
+                          if (jeUlogovan)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: IconButton(
+                                icon: const Icon(Icons.comment_outlined),
+                                onPressed: () => _prikaziKomentare(context, doc.id),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -176,23 +185,25 @@ class GostPage extends StatelessWidget {
     );
   }
 
-  // FUNKCIJA ZA DODAVANJE STANA
   void _prikaziFormuZaDodavanje(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
-          top: 20, left: 20, right: 20,
+          top: 20,
+          left: 20,
+          right: 20,
         ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Dodaj novi oglas", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
+              const Text("Dodaj novi oglas",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               TextField(controller: naslovController, decoration: const InputDecoration(labelText: "Naslov")),
               TextField(controller: cenaController, decoration: const InputDecoration(labelText: "Cena")),
               TextField(controller: lokacijaController, decoration: const InputDecoration(labelText: "Lokacija")),
@@ -201,35 +212,32 @@ class GostPage extends StatelessWidget {
               TextField(controller: slikaController, decoration: const InputDecoration(labelText: "URL slike")),
               TextField(controller: opisController, decoration: const InputDecoration(labelText: "Opis"), maxLines: 3),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F5D8C)),
-                  onPressed: () async {
-                    if (naslovController.text.isNotEmpty) {
-                      await FirebaseFirestore.instance.collection('stanovi').add({
-                        'naslov': naslovController.text,
-                        'cena': cenaController.text,
-                        'lokacija': lokacijaController.text,
-                        'kvadratura': kvadraturaController.text,
-                        'sobe': sobeController.text,
-                        'imageUrl': slikaController.text,
-                        'opis': opisController.text,
-                        'vremeObjave': FieldValue.serverTimestamp(),
-                      });
-                      // Čišćenje polja
-                      naslovController.clear();
-                      cenaController.clear();
-                      lokacijaController.clear();
-                      kvadraturaController.clear();
-                      sobeController.clear();
-                      slikaController.clear();
-                      opisController.clear();
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const Text("Objavi oglas", style: TextStyle(color: Colors.white)),
-                ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (naslovController.text.isNotEmpty) {
+                    await FirebaseFirestore.instance.collection('stanovi').add({
+                      'naslov': naslovController.text,
+                      'cena': cenaController.text,
+                      'lokacija': lokacijaController.text,
+                      'kvadratura': kvadraturaController.text,
+                      'sobe': sobeController.text,
+                      'imageUrl': slikaController.text,
+                      'opis': opisController.text,
+                      'vremeObjave': FieldValue.serverTimestamp(),
+                    });
+
+                    naslovController.clear();
+                    cenaController.clear();
+                    lokacijaController.clear();
+                    kvadraturaController.clear();
+                    sobeController.clear();
+                    slikaController.clear();
+                    opisController.clear();
+
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text("Objavi oglas"),
               ),
               const SizedBox(height: 20),
             ],
@@ -239,7 +247,6 @@ class GostPage extends StatelessWidget {
     );
   }
 
-  // FUNKCIJA ZA KOMENTARE
   void _prikaziKomentare(BuildContext context, String stanId) {
     final TextEditingController komentarController = TextEditingController();
 
@@ -252,7 +259,9 @@ class GostPage extends StatelessWidget {
           decoration: const InputDecoration(hintText: "Napiši nešto..."),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Odustani")),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Odustani")),
           ElevatedButton(
             onPressed: () async {
               if (komentarController.text.isNotEmpty) {
