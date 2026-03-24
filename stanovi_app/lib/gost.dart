@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'prijava.dart';
 import 'detalji_stan.dart';
-
+import 'profil.dart';
 class GostPage extends StatelessWidget {
   const GostPage({super.key});
 
@@ -49,7 +49,12 @@ class GostPage extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.person),
                   title: const Text("Profil"),
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfilPage()),
+                    );
+                  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
