@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'prijava.dart';
 import 'detalji_stan.dart';
 import 'profil.dart';
+
 class GostPage extends StatelessWidget {
   const GostPage({super.key});
 
@@ -21,6 +22,7 @@ class GostPage extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
         final bool jeUlogovan = authSnapshot.hasData;
+        final User? user = authSnapshot.data;
 
         return Scaffold(
           drawer: Drawer(
@@ -28,9 +30,7 @@ class GostPage extends StatelessWidget {
               padding: EdgeInsets.zero,
               children: [
                 const DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: Color(0xFF2F5D8C),
-                  ),
+                  decoration: BoxDecoration(color: Color(0xFF2F5D8C)),
                   child: Text(
                     "Moj meni",
                     style: TextStyle(color: Colors.white, fontSize: 20),
@@ -39,29 +39,32 @@ class GostPage extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.favorite),
                   title: const Text("Favoriti"),
-                  onTap: () {},
-                ),
-                ListTile(
-                  leading: const Icon(Icons.home),
-                  title: const Text("Moji oglasi"),
-                  onTap: () {},
+                  onTap: () {
+                    if (!jeUlogovan) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Uloguj se kao korisnik da vidiš favorite!'),
+                        ),
+                      );
+                    } else {
+                      // Ako želiš kasnije, ovde možeš navigaciju na FavoritesPage
+                    }
+                  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.person),
                   title: const Text("Profil"),
                   onTap: () {
                     Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfilPage()),
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfilPage()),
                     );
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
                   title: const Text("Odjava"),
-                  onTap: () {
-                    FirebaseAuth.instance.signOut();
-                  },
+                  onTap: () => FirebaseAuth.instance.signOut(),
                 ),
               ],
             ),
@@ -128,19 +131,62 @@ class GostPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                            child: Image.network(
-                              stan['imageUrl'] ?? '',
-                              height: 120,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                height: 120,
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.image, size: 40),
+                          // Stack sa slikom i srcem
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                child: Image.network(
+                                  stan['imageUrl'] ?? '',
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 150,
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.image, size: 40),
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (jeUlogovan)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: StreamBuilder<DocumentSnapshot>(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('favoriti')
+                                        .doc(user!.uid)
+                                        .snapshots(),
+                                    builder: (context, favSnapshot) {
+                                      final stanoviFav = favSnapshot.data?.get('stanovi') ?? [];
+                                      final jeFavorit = stanoviFav.contains(doc.id);
+
+                                      return GestureDetector(
+                                        onTap: () async {
+                                          final favDoc = FirebaseFirestore.instance
+                                              .collection('favoriti')
+                                              .doc(user.uid);
+
+                                          if (jeFavorit) {
+                                            await favDoc.update({
+                                              'stanovi': FieldValue.arrayRemove([doc.id])
+                                            });
+                                          } else {
+                                            await favDoc.set({
+                                              'stanovi': FieldValue.arrayUnion([doc.id])
+                                            }, SetOptions(merge: true));
+                                          }
+                                        },
+                                        child: Icon(
+                                          jeFavorit ? Icons.favorite : Icons.favorite_border,
+                                          color: jeFavorit ? Colors.red : Colors.white,
+                                          size: 28,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                            ],
                           ),
                           Padding(
                             padding: const EdgeInsets.all(10),
@@ -155,21 +201,12 @@ class GostPage extends StatelessWidget {
                                 Text(
                                   "Cena: ${stan['cena'] ?? ''}",
                                   style: const TextStyle(
-                                      color: Colors.blueAccent,
-                                      fontWeight: FontWeight.bold),
+                                      color: Colors.blueAccent, fontWeight: FontWeight.bold),
                                 ),
                                 Text("Lokacija: ${stan['lokacija'] ?? ''}"),
                               ],
                             ),
                           ),
-                          if (jeUlogovan)
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: IconButton(
-                                icon: const Icon(Icons.comment_outlined),
-                                onPressed: () => _prikaziKomentare(context, doc.id),
-                              ),
-                            ),
                         ],
                       ),
                     ),
@@ -219,28 +256,35 @@ class GostPage extends StatelessWidget {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
-                  if (naslovController.text.isNotEmpty) {
-                    await FirebaseFirestore.instance.collection('stanovi').add({
-                      'naslov': naslovController.text,
-                      'cena': cenaController.text,
-                      'lokacija': lokacijaController.text,
-                      'kvadratura': kvadraturaController.text,
-                      'sobe': sobeController.text,
-                      'imageUrl': slikaController.text,
-                      'opis': opisController.text,
-                      'vremeObjave': FieldValue.serverTimestamp(),
-                    });
-
-                    naslovController.clear();
-                    cenaController.clear();
-                    lokacijaController.clear();
-                    kvadraturaController.clear();
-                    sobeController.clear();
-                    slikaController.clear();
-                    opisController.clear();
-
-                    Navigator.pop(context);
+                  if (naslovController.text.isEmpty ||
+                      cenaController.text.isEmpty ||
+                      lokacijaController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Popuni obavezna polja!')),
+                    );
+                    return;
                   }
+
+                  await FirebaseFirestore.instance.collection('stanovi').add({
+                    'naslov': naslovController.text,
+                    'cena': cenaController.text,
+                    'lokacija': lokacijaController.text,
+                    'kvadratura': kvadraturaController.text,
+                    'sobe': sobeController.text,
+                    'imageUrl': slikaController.text,
+                    'opis': opisController.text,
+                    'vremeObjave': FieldValue.serverTimestamp(),
+                  });
+
+                  naslovController.clear();
+                  cenaController.clear();
+                  lokacijaController.clear();
+                  kvadraturaController.clear();
+                  sobeController.clear();
+                  slikaController.clear();
+                  opisController.clear();
+
+                  Navigator.pop(context);
                 },
                 child: const Text("Objavi oglas"),
               ),
@@ -248,43 +292,6 @@ class GostPage extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _prikaziKomentare(BuildContext context, String stanId) {
-    final TextEditingController komentarController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Ostavi komentar"),
-        content: TextField(
-          controller: komentarController,
-          decoration: const InputDecoration(hintText: "Napiši nešto..."),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Odustani")),
-          ElevatedButton(
-            onPressed: () async {
-              if (komentarController.text.isNotEmpty) {
-                await FirebaseFirestore.instance
-                    .collection('stanovi')
-                    .doc(stanId)
-                    .collection('komentari')
-                    .add({
-                  'tekst': komentarController.text,
-                  'korisnik': FirebaseAuth.instance.currentUser?.email,
-                  'vreme': FieldValue.serverTimestamp(),
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Pošalji"),
-          ),
-        ],
       ),
     );
   }
