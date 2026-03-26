@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'prijava.dart';
 import 'detalji_stan.dart';
 import 'profil.dart';
+import 'favoritesPage.dart';
 
 class GostPage extends StatelessWidget {
   const GostPage({super.key});
@@ -25,6 +26,7 @@ class GostPage extends StatelessWidget {
         final User? user = authSnapshot.data;
 
         return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F7), // background za celu stranicu
           drawer: Drawer(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -47,7 +49,10 @@ class GostPage extends StatelessWidget {
                         ),
                       );
                     } else {
-                      // Ako želiš kasnije, ovde možeš navigaciju na FavoritesPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const FavoritesPage()),
+                      );
                     }
                   },
                 ),
@@ -64,12 +69,22 @@ class GostPage extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
                   title: const Text("Odjava"),
-                  onTap: () => FirebaseAuth.instance.signOut(),
+                  onTap: () {
+                    if (jeUlogovan) {
+                      FirebaseAuth.instance.signOut();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Uspešno ste se odjavili!')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Prijavite se!')),
+                      );
+                    }
+                  },
                 ),
               ],
             ),
           ),
-          backgroundColor: const Color(0xFFF5F5F7),
           appBar: AppBar(
             title: const Text("Stanovi", style: TextStyle(fontWeight: FontWeight.bold)),
             centerTitle: true,
@@ -131,7 +146,6 @@ class GostPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Stack sa slikom i srcem
                           Stack(
                             children: [
                               ClipRRect(
