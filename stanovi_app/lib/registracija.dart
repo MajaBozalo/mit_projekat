@@ -17,9 +17,24 @@ class _RegistracijaPageState extends State<RegistracijaPage> {
   final _prezimeController = TextEditingController();
 
   Future signUp() async {
+    // Provera minimalne dužine lozinke
+    if (_passwordController.text.trim().length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Lozinka mora imati najmanje 6 karaktera!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Provera da li se lozinke podudaraju
     if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lozinke se ne podudaraju!"), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text("Lozinke se ne podudaraju!"),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -40,17 +55,22 @@ class _RegistracijaPageState extends State<RegistracijaPage> {
         "ime": _imeController.text.trim(),
         "prezime": _prezimeController.text.trim(),
         "userID": 1, // ili generiši neki ID po logici tvoje aplikacije
-        
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Uspešno ste registrovani!"), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text("Uspešno ste registrovani!"),
+          backgroundColor: Colors.green,
+        ),
       );
 
       Navigator.pop(context); // Vraćanje na prijavu
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Greška: ${e.message}"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Greška: ${e.message}"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -118,7 +138,10 @@ class _RegistracijaPageState extends State<RegistracijaPage> {
               child: ElevatedButton(
                 onPressed: signUp,
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                child: const Text("Otvori nalog", style: TextStyle(color: Colors.white, fontSize: 16)),
+                child: const Text(
+                  "Otvori nalog",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ),
             ),
           ],
