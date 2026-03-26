@@ -242,12 +242,18 @@ class GostPage extends StatelessWidget {
   }
 
   void _prikaziFormuZaDodavanje(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
+  // lokalne varijable za greške
+  String? naslovError;
+  String? cenaError;
+  String? lokacijaError;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
           top: 20,
@@ -260,25 +266,57 @@ class GostPage extends StatelessWidget {
             children: [
               const Text("Dodaj novi oglas",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              TextField(controller: naslovController, decoration: const InputDecoration(labelText: "Naslov")),
-              TextField(controller: cenaController, decoration: const InputDecoration(labelText: "Cena")),
-              TextField(controller: lokacijaController, decoration: const InputDecoration(labelText: "Lokacija")),
+
+              // Naslov
+              TextField(
+                controller: naslovController,
+                decoration: InputDecoration(
+                  labelText: "Naslov",
+                  errorText: naslovError, // prikazuje grešku
+                ),
+              ),
+
+              // Cena
+              TextField(
+                controller: cenaController,
+                decoration: InputDecoration(
+                  labelText: "Cena",
+                  errorText: cenaError,
+                ),
+                keyboardType: TextInputType.number,
+              ),
+
+              // Lokacija
+              TextField(
+                controller: lokacijaController,
+                decoration: InputDecoration(
+                  labelText: "Lokacija",
+                  errorText: lokacijaError,
+                ),
+              ),
+
+              // Ostala polja
               TextField(controller: kvadraturaController, decoration: const InputDecoration(labelText: "Kvadratura")),
               TextField(controller: sobeController, decoration: const InputDecoration(labelText: "Broj soba")),
               TextField(controller: slikaController, decoration: const InputDecoration(labelText: "URL slike")),
               TextField(controller: opisController, decoration: const InputDecoration(labelText: "Opis"), maxLines: 3),
+
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
-                  if (naslovController.text.isEmpty ||
-                      cenaController.text.isEmpty ||
-                      lokacijaController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Popuni obavezna polja!')),
-                    );
+                  // resetovanje grešaka
+                  setState(() {
+                    naslovError = naslovController.text.isEmpty ? 'Naslov je obavezan' : null;
+                    cenaError = cenaController.text.isEmpty ? 'Cena je obavezna' : null;
+                    lokacijaError = lokacijaController.text.isEmpty ? 'Lokacija je obavezna' : null;
+                  });
+
+                  // ako postoji bilo koja greška, ne dodaj oglas
+                  if (naslovError != null || cenaError != null || lokacijaError != null) {
                     return;
                   }
 
+                  // dodavanje u Firestore
                   await FirebaseFirestore.instance.collection('stanovi').add({
                     'naslov': naslovController.text,
                     'cena': cenaController.text,
@@ -290,6 +328,7 @@ class GostPage extends StatelessWidget {
                     'vremeObjave': FieldValue.serverTimestamp(),
                   });
 
+                  // brisanje polja
                   naslovController.clear();
                   cenaController.clear();
                   lokacijaController.clear();
@@ -307,6 +346,7 @@ class GostPage extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
