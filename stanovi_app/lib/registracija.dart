@@ -17,7 +17,37 @@ class _RegistracijaPageState extends State<RegistracijaPage> {
   final _prezimeController = TextEditingController();
 
   Future signUp() async {
-    // Provera minimalne dužine lozinke
+    // Validacija svih polja
+    if (_imeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Unesite ime!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_prezimeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Unesite prezime!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Unesite email!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_passwordController.text.trim().length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -28,7 +58,6 @@ class _RegistracijaPageState extends State<RegistracijaPage> {
       return;
     }
 
-    // Provera da li se lozinke podudaraju
     if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -54,7 +83,7 @@ class _RegistracijaPageState extends State<RegistracijaPage> {
         "email": _emailController.text.trim(),
         "ime": _imeController.text.trim(),
         "prezime": _prezimeController.text.trim(),
-        "userID": 1, // ili generiši neki ID po logici tvoje aplikacije
+        "userID": 1,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

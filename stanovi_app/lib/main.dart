@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Dodato za proveru prijave
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'gost.dart';
-import 'admin_page.dart'; // Proveri da li si napravila ovaj fajl
+import 'admin_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const StanoviApp());
 }
 
@@ -25,13 +28,11 @@ class StanoviApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      // Umesto direktnog odlaska na GostPage, idemo na AuthWrapper
       home: const AuthWrapper(),
     );
   }
 }
 
-// OVO JE "MOZAK" KOJI ODREĐUJE ŠTA KORISNIK VIDI
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -39,10 +40,67 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // I ulogovan i neulogovan korisnik sada idu na istu stranicu
-        // jer GostPage sama crta dugmiće na osnovu statusa
-        return const GostPage(); 
+      builder: (context, authSnapshot) {
+        // LOADING
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // NIJE ULOGOVAN
+        if (!authSnapshot.hasData) {
+          return const GostPage();
+        }
+
+        // ULOGOVAN
+        final String uid = authSnapshot.data!.uid;
+
+        // 🔍 DEBUG
+        print("AUTH UID: ${FirebaseAuth.instance.currentUser?.uid}");
+        print("DOC UID: $uid");
+
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('korisnici')
+              .doc(uid)
+              .snapshots(),
+          builder: (context, userSnapshot) {
+
+            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            // 🔍 DEBUG FIRESTORE
+            print("FIRESTORE DATA: ${userSnapshot.data?.data()}");
+
+            // AKO POSTOJI USER
+            if (userSnapshot.hasData && userSnapshot.data!.exists) {
+
+              // SIGURNO ČITANJE (bez crash-a)
+              final data = userSnapshot.data!.data() as Map<String, dynamic>;
+
+              final int userID = data['userID'] ?? 1;
+
+              print("USER ID: $userID");
+
+              // ADMIN
+              if (userID == 0) {
+                return const AdminPage();
+              } 
+              // GOST
+              else {
+                return const GostPage();
+              }
+            }
+
+            // AKO NE POSTOJI DOKUMENT
+            print("USER DOCUMENT DOES NOT EXIST ❌");
+            return const GostPage();
+          },
+        );
       },
     );
   }

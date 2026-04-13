@@ -26,7 +26,7 @@ class GostPage extends StatelessWidget {
         final User? user = authSnapshot.data;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF5F5F7), // background za celu stranicu
+          backgroundColor: const Color(0xFFF5F5F7),
           drawer: Drawer(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -122,7 +122,7 @@ class GostPage extends StatelessWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.65,
+                  childAspectRatio: 0.60,
                 ),
                 itemCount: snapshot.data!.docs.length,
                 itemBuilder: (context, index) {
@@ -172,7 +172,9 @@ class GostPage extends StatelessWidget {
                                         .doc(user!.uid)
                                         .snapshots(),
                                     builder: (context, favSnapshot) {
-                                      final stanoviFav = favSnapshot.data?.get('stanovi') ?? [];
+                                      final stanoviFav = (favSnapshot.hasData && favSnapshot.data!.exists)
+                                          ? (favSnapshot.data!.get('stanovi') ?? [])
+                                          : [];
                                       final jeFavorit = stanoviFav.contains(doc.id);
 
                                       return GestureDetector(
@@ -181,14 +183,20 @@ class GostPage extends StatelessWidget {
                                               .collection('favoriti')
                                               .doc(user.uid);
 
-                                          if (jeFavorit) {
-                                            await favDoc.update({
-                                              'stanovi': FieldValue.arrayRemove([doc.id])
-                                            });
+                                          if (favSnapshot.hasData && favSnapshot.data!.exists) {
+                                            if (jeFavorit) {
+                                              await favDoc.update({
+                                                'stanovi': FieldValue.arrayRemove([doc.id])
+                                              });
+                                            } else {
+                                              await favDoc.update({
+                                                'stanovi': FieldValue.arrayUnion([doc.id])
+                                              });
+                                            }
                                           } else {
                                             await favDoc.set({
-                                              'stanovi': FieldValue.arrayUnion([doc.id])
-                                            }, SetOptions(merge: true));
+                                              'stanovi': [doc.id]
+                                            });
                                           }
                                         },
                                         child: Icon(
@@ -242,111 +250,106 @@ class GostPage extends StatelessWidget {
   }
 
   void _prikaziFormuZaDodavanje(BuildContext context) {
-  // lokalne varijable za greške
-  String? naslovError;
-  String? cenaError;
-  String? lokacijaError;
+    String? naslovError;
+    String? cenaError;
+    String? lokacijaError;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          top: 20,
-          left: 20,
-          right: 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Dodaj novi oglas",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Dodaj novi oglas",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
 
-              // Naslov
-              TextField(
-                controller: naslovController,
-                decoration: InputDecoration(
-                  labelText: "Naslov",
-                  errorText: naslovError, // prikazuje grešku
+                // Naslov
+                TextField(
+                  controller: naslovController,
+                  decoration: InputDecoration(
+                    labelText: "Naslov",
+                    errorText: naslovError,
+                  ),
                 ),
-              ),
 
-              // Cena
-              TextField(
-                controller: cenaController,
-                decoration: InputDecoration(
-                  labelText: "Cena",
-                  errorText: cenaError,
+                // Cena
+                TextField(
+                  controller: cenaController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Cena",
+                    errorText: cenaError,
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-              ),
 
-              // Lokacija
-              TextField(
-                controller: lokacijaController,
-                decoration: InputDecoration(
-                  labelText: "Lokacija",
-                  errorText: lokacijaError,
+                // Lokacija
+                TextField(
+                  controller: lokacijaController,
+                  decoration: InputDecoration(
+                    labelText: "Lokacija",
+                    errorText: lokacijaError,
+                  ),
                 ),
-              ),
 
-              // Ostala polja
-              TextField(controller: kvadraturaController, decoration: const InputDecoration(labelText: "Kvadratura")),
-              TextField(controller: sobeController, decoration: const InputDecoration(labelText: "Broj soba")),
-              TextField(controller: slikaController, decoration: const InputDecoration(labelText: "URL slike")),
-              TextField(controller: opisController, decoration: const InputDecoration(labelText: "Opis"), maxLines: 3),
+                // Ostala polja
+                TextField(controller: kvadraturaController, decoration: const InputDecoration(labelText: "Kvadratura")),
+                TextField(controller: sobeController, decoration: const InputDecoration(labelText: "Broj soba")),
+                TextField(controller: slikaController, decoration: const InputDecoration(labelText: "URL slike")),
+                TextField(controller: opisController, decoration: const InputDecoration(labelText: "Opis"), maxLines: 3),
 
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  // resetovanje grešaka
-                  setState(() {
-                    naslovError = naslovController.text.isEmpty ? 'Naslov je obavezan' : null;
-                    cenaError = cenaController.text.isEmpty ? 'Cena je obavezna' : null;
-                    lokacijaError = lokacijaController.text.isEmpty ? 'Lokacija je obavezna' : null;
-                  });
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    setState(() {
+                      naslovError = naslovController.text.isEmpty ? 'Naslov je obavezan' : null;
+                      cenaError = cenaController.text.isEmpty ? 'Cena je obavezna' : null;
+                      lokacijaError = lokacijaController.text.isEmpty ? 'Lokacija je obavezna' : null;
+                    });
 
-                  // ako postoji bilo koja greška, ne dodaj oglas
-                  if (naslovError != null || cenaError != null || lokacijaError != null) {
-                    return;
-                  }
+                    if (naslovError != null || cenaError != null || lokacijaError != null) {
+                      return;
+                    }
 
-                  // dodavanje u Firestore
-                  await FirebaseFirestore.instance.collection('stanovi').add({
-                    'naslov': naslovController.text,
-                    'cena': cenaController.text,
-                    'lokacija': lokacijaController.text,
-                    'kvadratura': kvadraturaController.text,
-                    'sobe': sobeController.text,
-                    'imageUrl': slikaController.text,
-                    'opis': opisController.text,
-                    'vremeObjave': FieldValue.serverTimestamp(),
-                  });
+                    await FirebaseFirestore.instance.collection('stanovi').add({
+                      'naslov': naslovController.text,
+                      'cena': cenaController.text,
+                      'lokacija': lokacijaController.text,
+                      'kvadratura': kvadraturaController.text,
+                      'sobe': sobeController.text,
+                      'imageUrl': slikaController.text,
+                      'opis': opisController.text,
+                      'vremeObjave': FieldValue.serverTimestamp(),
+                    });
 
-                  // brisanje polja
-                  naslovController.clear();
-                  cenaController.clear();
-                  lokacijaController.clear();
-                  kvadraturaController.clear();
-                  sobeController.clear();
-                  slikaController.clear();
-                  opisController.clear();
+                    naslovController.clear();
+                    cenaController.clear();
+                    lokacijaController.clear();
+                    kvadraturaController.clear();
+                    sobeController.clear();
+                    slikaController.clear();
+                    opisController.clear();
 
-                  Navigator.pop(context);
-                },
-                child: const Text("Objavi oglas"),
-              ),
-              const SizedBox(height: 20),
-            ],
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Objavi oglas"),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
