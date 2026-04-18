@@ -5,12 +5,15 @@ import 'prijava.dart';
 import 'detalji_stan.dart';
 import 'profil.dart';
 import 'favoritesPage.dart';
+import 'settings_page.dart';
 
 class GostPage extends StatefulWidget {
   const GostPage({super.key});
 
   @override
   State<GostPage> createState() => _GostPageState();
+
+  
 }
 
 class _GostPageState extends State<GostPage> {
@@ -26,6 +29,7 @@ class _GostPageState extends State<GostPage> {
   final TextEditingController opisController = TextEditingController();
   final TextEditingController sobeController = TextEditingController();
 
+  
   @override
   void dispose() {
     _searchController.dispose();
@@ -446,7 +450,17 @@ class _GostPageState extends State<GostPage> {
                   );
                 },
                 tooltip: "Prijava",
-              ),
+                    ),IconButton(
+              icon: const Icon(Icons.settings, color: Colors.grey),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsPage(),
+                  ),
+                );
+              },
+            ),
       ],
     );
   }
