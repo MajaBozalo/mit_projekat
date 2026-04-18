@@ -1,5 +1,5 @@
 name: stanovi_app
-description: A Flutter project with Firebase Auth and Firestore
+description: A Flutter project with Firebase Auth, Firestore and Weather API
 
 publish_to: "none"
 
@@ -14,6 +14,12 @@ dependencies:
 
   # UI
   cupertino_icons: ^1.0.6
+
+  # HTTP (Weather API)
+  http: ^1.2.0
+
+  # Google Maps
+  google_maps_flutter: ^2.6.0
 
   # Firebase
   firebase_core: ^3.0.0
