@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'weather_service.dart';
 import 'currency_service.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DetaljiStanPage extends StatefulWidget {
   final Map<String, dynamic> stan;
@@ -30,31 +31,20 @@ class _DetaljiStanPageState extends State<DetaljiStanPage> {
   void loadWeather() async {
     try {
       final service = WeatherService();
-      // Sigurno izvlačenje grada
       final grad = widget.stan['lokacija']?.toString().split(',').first ?? "Belgrade";
       final data = await service.getWeather(grad);
-
-      if (mounted) {
-        setState(() {
-          weather = data;
-          isLoadingWeather = false;
-        });
-      }
+      if (mounted) setState(() { weather = data; isLoadingWeather = false; });
     } catch (e) {
       if (mounted) setState(() => isLoadingWeather = false);
-      print("Weather error: $e");
     }
   }
 
   void loadCurrency() async {
     try {
       final service = CurrencyService();
-      // Sigurno parsiranje cene bez obzira da li je int ili double
       final price = double.tryParse(widget.stan['cena'].toString()) ?? 0.0;
-
       final rsd = await service.convert("EUR", "RSD", price);
       final usd = await service.convert("EUR", "USD", price);
-
       if (mounted) {
         setState(() {
           currencyRsd = rsd;
@@ -64,15 +54,14 @@ class _DetaljiStanPageState extends State<DetaljiStanPage> {
       }
     } catch (e) {
       if (mounted) setState(() => isLoadingCurrency = false);
-      print("Currency error: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Sigurno izvlačenje koordinata
-    final double lat = double.tryParse(widget.stan['lat']?.toString() ?? "43.58") ?? 43.58;
-    final double lng = double.tryParse(widget.stan['lng']?.toString() ?? "21.33") ?? 21.33;
+    final double lat = (widget.stan['lat'] as num?)?.toDouble() ?? 44.8176;
+    final double lng = (widget.stan['lng'] as num?)?.toDouble() ?? 20.4569;
+    final bool imaMapu = widget.stan['lat'] != null && widget.stan['lng'] != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -84,21 +73,14 @@ class _DetaljiStanPageState extends State<DetaljiStanPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🖼 SLIKA SA ZAOKRUŽENIM IVICAMA (OPCIONO)
-            Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 280,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                  ),
-                  child: (widget.stan['imageUrl'] != null && widget.stan['imageUrl'] != '')
-                      ? Image.network(widget.stan['imageUrl'], fit: BoxFit.cover)
-                      : const Icon(Icons.apartment, size: 80, color: Colors.grey),
-                ),
-                // Gradijent preko slike da se tekst bolje vidi ako ga dodaš
-              ],
+            // SLIKA
+            Container(
+              width: double.infinity,
+              height: 280,
+              color: Colors.grey.shade300,
+              child: (widget.stan['imageUrl'] != null && widget.stan['imageUrl'] != '')
+                  ? Image.network(widget.stan['imageUrl'], fit: BoxFit.cover)
+                  : const Icon(Icons.apartment, size: 80, color: Colors.grey),
             ),
 
             Padding(
@@ -111,8 +93,8 @@ class _DetaljiStanPageState extends State<DetaljiStanPage> {
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  
-                  // 💰 SEKCIJA ZA CENU
+
+                  // CIJENA
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -135,7 +117,7 @@ class _DetaljiStanPageState extends State<DetaljiStanPage> {
 
                   const Divider(height: 30),
 
-                  // 📊 OSNOVNE INFORMACIJE
+                  // INFO
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
@@ -147,30 +129,47 @@ class _DetaljiStanPageState extends State<DetaljiStanPage> {
 
                   const SizedBox(height: 25),
 
-                  // 🌦 VRIJEME - Moderniji prikaz
+                  // VRIJEME
                   const Text("Lokalna prognoza", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   _weatherWidget(),
 
                   const SizedBox(height: 25),
 
-                  // 🗺 MAPA
+                  // MAPA
                   const Text("Lokacija na mapi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(15),
                     child: SizedBox(
                       height: 220,
-                      child: GoogleMap(
-                        initialCameraPosition: CameraPosition(target: LatLng(lat, lng), zoom: 15),
-                        markers: {
-                          Marker(
-                            markerId: const MarkerId("stan"),
-                            position: LatLng(lat, lng),
-                            infoWindow: InfoWindow(title: widget.stan['naslov']),
-                          ),
-                        },
-                      ),
+                      child: imaMapu
+                          ? FlutterMap(
+                              options: MapOptions(
+                                initialCenter: LatLng(lat, lng),
+                                initialZoom: 15,
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.example.stanovi_app',
+                                ),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: LatLng(lat, lng),
+                                      width: 40,
+                                      height: 40,
+                                      child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : Container(
+                              color: Colors.grey[200],
+                              child: const Center(child: Text("Lokacija nije dostupna")),
+                            ),
                     ),
                   ),
 
@@ -180,13 +179,13 @@ class _DetaljiStanPageState extends State<DetaljiStanPage> {
                   const Text("Opis", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Text(
-                    widget.stan['opis'] ?? 'Nema dodatnog opisa za ovaj oglas.',
+                    widget.stan['opis'] ?? 'Nema dodatnog opisa.',
                     style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.5),
                   ),
                   const SizedBox(height: 40),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
